@@ -1,0 +1,91 @@
+function parseQueryString(queryString) {
+  var query = {};
+  var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+  for (var i = 0; i < pairs.length; i++) {
+    var pair = pairs[i].split('=');
+    query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+  }
+  return query;
+}
+
+function setTrackingAndAutoPopulateFields() {
+  var trackingFields = ['amgtc','amgptc','utm_source', 'utm_medium', 'utm_term', 'utm_content', 'utm_campaign','utm_link','utmf_id'];
+  // var formFields = ['contact_name','contact_email','contact_phone1'];
+  var requestFields = parseQueryString(window.location.search);
+
+  //console.log(requestFields);
+
+  for(var i=0;i<trackingFields.length;i++) {
+    var key = trackingFields[i];
+    if (jQuery('input[name="'+key+'"]').length && requestFields.hasOwnProperty(key)) {
+      //console.log("Settings " + key + " to " +requestFields[key]);
+      jQuery('input[name="'+key+'"]').val(requestFields[key]);
+    }
+  }
+
+  // for(var i=0;i<formFields.length;i++) {
+  //   var key = formFields[i];
+  //   if (jQuery("input[data-type="+key+"]").length && requestFields.hasOwnProperty(key)) {
+  //     //console.log("Settings " + key + " to " +requestFields[key]);
+  //     jQuery("input[data-type="+key+"]").val(requestFields[key]);
+  //   }
+  // }
+}
+
+function getParams(url) {
+  var params = {};
+  var parser = document.createElement('a');
+  parser.href = url;
+  var query = parser.search.substring(1);
+  var vars = query.split('&');
+  for (var i = 0; i < vars.length; i++) {
+    var pair = vars[i].split('=');
+    params[pair[0]] = decodeURIComponent(pair[1]);
+  }
+  return params;
+}
+
+function populateInputsFromQueryParams(){
+  // takes all query params and attempts to populate form fields with the values
+  var qParams = getParams(window.location.href);
+  var forms = document.querySelectorAll('form');
+
+  // loop through query params
+  for(var k in qParams){
+    if(k !== '' && qParams.hasOwnProperty(k)){
+      var val = qParams[k];
+      for(var n=0;n<forms.length;n++){
+
+        //check by name
+        var exists = forms[n].querySelectorAll('[name="'+k+'"]');
+        for(var i = 0; i < exists.length;i++){
+          exists[i].value = val;
+        }
+
+        // find inputs with data attribute
+        var inputs = forms[n].querySelectorAll('[data-map_to="'+k+'"]');
+        // if the inputs don't exist... add hidden input fields
+
+        //TODO: Turn this back on maybe?
+        // This can cause an issue with posting to wordpress if a GET variable exists and the POST variable from this overwrites it.
+        if(inputs.length === 0){
+          var trackingFields = ['amgtc','amgptc','utm_source', 'utm_medium', 'utm_term', 'utm_content', 'utm_campaign','utm_link','utmf_id','utmc_id'];
+
+          if(trackingFields.includes(k)) {
+            var input = document.createElement('input');
+            input.setAttribute('type','hidden');
+            input.setAttribute('data-type',k);
+            input.setAttribute('value',val);
+            input.setAttribute('data-map_to',k);
+            input.setAttribute('name',k);
+            forms[n].appendChild(input);
+          }
+        } else {
+          for(var i = 0; i < inputs.length;i++){
+            inputs[i].value = val;
+          }
+        }
+      }
+    }
+  }
+}
